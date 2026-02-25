@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: marketing-bot
+    runtime: docker
+    repo: https://github.com/core-relay-err0r/Marketing_bot
+    branch: main
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: GOOGLE_SHEETS_ID
+        sync: false
+      - key: GOOGLE_CREDENTIALS_JSON
+        sync: false
+      - key: SENDER_EMAIL
+        sync: false
+      - key: SENDER_NAME
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: VERCEL_AI_GATEWAY_KEY
+        sync: false
