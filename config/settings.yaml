@@ -1,0 +1,78 @@
+countries:
+  USA:
+    cities:
+      - Miami
+      - Dallas
+      - Austin
+      - Chicago
+      - Los Angeles
+  Canada:
+    cities:
+      - Toronto
+      - Vancouver
+  UK:
+    cities:
+      - London
+      - Manchester
+  Australia:
+    cities:
+      - Sydney
+      - Melbourne
+      - Brisbane
+      - Adelaide
+      - Perth
+  UAE:
+    cities:
+      - Dubai
+      - Abu Dhabi
+
+niches:
+  - dentists
+  - beauty salons
+  - real estate agents
+  - clinics
+  - gyms
+  - personal trainers
+  - restaurants
+  - plumbing
+  - roofing
+  - HVAC
+  - electricians
+
+niche_priority:
+  - plumbing
+  - roofing
+  - HVAC
+  - electricians
+  - dentists
+  - clinics
+  - beauty salons
+  - real estate agents
+  - gyms
+  - personal trainers
+  - restaurants
+
+scraper:
+  max_results_per_search: 300
+  scroll_pause_min: 2.0
+  scroll_pause_max: 5.0
+  action_delay_min: 1.5
+  action_delay_max: 4.0
+  session_rotation_every: 30
+  headless: true
+
+qualifier:
+  load_timeout_seconds: 15
+  slow_threshold_seconds: 4.0
+  outdated_copyright_before: 2020
+  max_concurrent_checks: 5
+
+email:
+  daily_limit: 200
+  delay_between_sends_min: 30
+  delay_between_sends_max: 30
+  template_file: templates/outreach_email.txt
+
+kpi:
+  raw_scraped_target: 100
+  qualified_leads_target: 50

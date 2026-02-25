@@ -1,0 +1,144 @@
+========================================
+  BURRA.IO LEAD GEN BOT - COMMAND LIST
+========================================
+
+IMPORTANT: Always activate the virtual environment first:
+
+  cd "/home/tflash/Desktop/Marketing bot"
+  source venv/bin/activate
+
+
+----------------------------------------
+  FULL PIPELINE (scrape + qualify + sheet)
+----------------------------------------
+
+# Run with daily rotation (auto picks cities + top 3 niches)
+python main.py run
+
+# Target a specific city + niche
+python main.py run --city Miami --niche dentists
+python main.py run --city London --niche "beauty salons"
+python main.py run --city Dubai --niche plumbing
+
+# Specify country for cities not in config
+python main.py run --city Bangkok --country Thailand --niche detailing
+
+# Skip email sending (scrape + qualify + sheet only)
+python main.py run --city Dallas --niche HVAC --no-email
+
+# Enable AI vision scoring for website quality
+python main.py run --city Toronto --niche dentists --no-email --ai
+
+# Show browser window (for debugging)
+python main.py run --city Miami --niche dentists --no-headless
+
+# Verbose logging (must go BEFORE the command)
+python main.py -v run --city Miami --niche dentists
+
+# Combine flags
+python main.py -v run --city Sydney --niche clinics --no-email --ai
+
+
+----------------------------------------
+  AVAILABLE NICHES
+----------------------------------------
+
+dentists
+beauty salons
+real estate agents
+clinics
+gyms
+personal trainers
+restaurants
+plumbing
+roofing
+HVAC
+electricians
+
+
+----------------------------------------
+  TARGET CITIES (auto-detect country)
+----------------------------------------
+
+USA:        Miami, Dallas, Austin, Chicago, Los Angeles
+Canada:     Toronto, Vancouver
+UK:         London, Manchester
+Australia:  Sydney, Melbourne, Brisbane, Adelaide, Perth
+UAE:        Dubai, Abu Dhabi
+
+
+----------------------------------------
+  EMAIL ONLY (send to un-emailed leads)
+----------------------------------------
+
+# Send emails to today's leads
+python main.py email
+
+# Send emails from a specific date's tab
+python main.py email --sheet-tab "Feb 21"
+
+
+----------------------------------------
+  QUALIFY FROM CSV
+----------------------------------------
+
+# Qualify leads from an Instant Data Scraper CSV export
+python main.py qualify data.csv --niche dentists --city Miami
+python main.py qualify data.csv --niche plumbing --city London --country UK
+
+# Qualify CSV without sending emails
+python main.py qualify data.csv --niche HVAC --city Dallas --no-email
+
+
+----------------------------------------
+  STATUS / PROGRESS
+----------------------------------------
+
+# Show today's pipeline status and daily progress
+python main.py status
+
+
+----------------------------------------
+  HELP
+----------------------------------------
+
+# Show all commands
+python main.py --help
+
+# Show options for a specific command
+python main.py run --help
+python main.py email --help
+python main.py qualify --help
+python main.py status --help
+
+
+----------------------------------------
+  BATCH EXAMPLES (run multiple cities)
+----------------------------------------
+
+# Run multiple cities one after another
+python main.py run --city Miami --niche plumbing --no-email && \
+python main.py run --city Dallas --niche plumbing --no-email && \
+python main.py run --city Austin --niche plumbing --no-email
+
+# Run a full niche across all US cities
+for city in Miami Dallas Austin Chicago "Los Angeles"; do
+  python main.py run --city "$city" --niche dentists --no-email
+done
+
+# Run top 3 niches in one city
+for niche in plumbing roofing HVAC; do
+  python main.py run --city Miami --niche "$niche" --no-email
+done
+
+
+----------------------------------------
+  ENVIRONMENT SETUP (.env file)
+----------------------------------------
+
+GOOGLE_SHEETS_ID=your_spreadsheet_id
+GOOGLE_CREDENTIALS_PATH=config/burra-leadgen-a38d86f16e73.json
+RESEND_API_KEY=re_your_api_key
+SENDER_EMAIL=jj@burra.io
+SENDER_NAME=JJ
+VERCEL_AI_GATEWAY_KEY=your_vercel_key (needed for --ai flag)

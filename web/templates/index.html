@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Burra.io — Lead Gen Bot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#eef2ff',100:'#e0e7ff',200:'#c7d2fe',400:'#818cf8',500:'#6366f1',600:'#4f46e5',700:'#4338ca',800:'#3730a3',900:'#312e81' },
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans antialiased" x-data="app()" x-init="init()">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto flex items-center justify-between px-6 py-4">
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-lg bg-brand-600 flex items-center justify-center text-white font-bold text-lg">B</div>
+        <div>
+          <h1 class="text-lg font-semibold tracking-tight">Burra.io Lead Gen</h1>
+          <p class="text-xs text-slate-500 -mt-0.5">Automated outreach pipeline</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          AI Scoring: Always ON
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Tab Navigation -->
+  <nav class="border-b border-slate-800 bg-slate-900/50">
+    <div class="max-w-7xl mx-auto px-6">
+      <div class="flex gap-1">
+        <template x-for="t in tabs" :key="t.id">
+          <button
+            @click="tab = t.id"
+            :class="tab === t.id
+              ? 'border-brand-500 text-brand-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600'"
+            class="px-4 py-3 text-sm font-medium border-b-2 transition-colors"
+            x-text="t.label">
+          </button>
+        </template>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- ═══════════ PIPELINE TAB ═══════════ -->
+    <div x-show="tab==='pipeline'" x-transition>
+
+      <!-- Step Progress Indicator -->
+      <div x-show="pipeline.running || pipeline.currentStep >= 0"
+        class="rounded-xl border border-slate-800 bg-slate-900 p-5 mb-6" x-transition>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-semibold text-slate-300">Pipeline Progress</h3>
+          <span x-show="pipeline.running" class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 ring-1 ring-brand-500/20">
+            <span class="h-1.5 w-1.5 rounded-full bg-brand-400 animate-pulse"></span> Processing
+          </span>
+          <span x-show="!pipeline.running && pipeline.currentStep >= 4" class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">
+            &#10003; Complete
+          </span>
+        </div>
+        <div class="stepper">
+          <template x-for="step in pipelineSteps" :key="step.id">
+            <div class="stepper-item" :class="{
+              'stepper-completed': stepState(step.id) === 'completed',
+              'stepper-active':    stepState(step.id) === 'active',
+              'stepper-pending':   stepState(step.id) === 'pending',
+            }">
+              <div class="stepper-dot">
+                <template x-if="stepState(step.id) === 'completed'">
+                  <svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </template>
+                <template x-if="stepState(step.id) === 'active'">
+                  <span class="stepper-pulse"></span>
+                </template>
+                <template x-if="stepState(step.id) === 'pending'">
+                  <span class="h-2 w-2 rounded-full bg-slate-600"></span>
+                </template>
+              </div>
+              <div class="stepper-label" x-text="step.label"></div>
+              <div class="stepper-desc" x-show="stepState(step.id) === 'active'" x-text="step.desc" x-transition></div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+        <!-- Config Panel -->
+        <div class="lg:col-span-2 space-y-5">
+          <div class="rounded-xl border border-slate-800 bg-slate-900 p-6"
+            :class="pipeline.running && 'opacity-60 pointer-events-none select-none'">
+            <div class="flex items-center justify-between mb-5">
+              <h2 class="text-base font-semibold">Pipeline Configuration</h2>
+              <span x-show="pipeline.running" class="text-xs text-amber-400">Locked while running</span>
+            </div>
+
+            <div class="space-y-4">
+              <!-- Country -->
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Country</label>
+                <input type="text" list="country-list"
+                  x-model="pipeline.country"
+                  @input="onCountryChange()"
+                  placeholder="Auto (daily rotation) — or type any country"
+                  class="input-field w-full" />
+                <datalist id="country-list">
+                  <template x-for="c in Object.keys(config.countries || {})" :key="c">
+                    <option :value="c"></option>
+                  </template>
+                </datalist>
+                <p x-show="pipeline.country && !isKnownCountry()"
+                  class="mt-1 text-xs text-amber-400 flex items-center gap-1">
+                  <span>&#9888;</span> Custom country — make sure it matches a real location
+                </p>
+              </div>
+
+              <!-- City -->
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">City</label>
+                <input type="text" list="city-list"
+                  x-model="pipeline.city"
+                  @input="onCityChange()"
+                  placeholder="All cities (rotation) — or type any city"
+                  class="input-field w-full" />
+                <datalist id="city-list">
+                  <template x-for="city in getCitySuggestions()" :key="city">
+                    <option :value="city"></option>
+                  </template>
+                </datalist>
+                <p x-show="pipeline.city && !isKnownCity()"
+                  class="mt-1 text-xs text-amber-400 flex items-center gap-1">
+                  <span>&#9888;</span> Custom city — not in preset list
+                </p>
+                <p x-show="pipeline.city && !pipeline.country"
+                  class="mt-1 text-xs text-rose-400 flex items-center gap-1">
+                  <span>&#10005;</span> Please enter a country first
+                </p>
+                <p x-show="pipeline.city && pipeline.country && isKnownCountry() && !isKnownCity() && getCitySuggestions().length > 0"
+                  class="mt-1 text-xs text-slate-500">
+                  Known cities for <span x-text="pipeline.country"></span>: <span class="text-slate-400" x-text="getCitySuggestions().join(', ')"></span>
+                </p>
+              </div>
+
+              <!-- Niche -->
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Niche</label>
+                <input type="text" list="niche-list"
+                  x-model="pipeline.niche"
+                  placeholder="Top 3 priority niches — or type any niche"
+                  class="input-field w-full" />
+                <datalist id="niche-list">
+                  <template x-for="n in (config.niches || [])" :key="n">
+                    <option :value="n"></option>
+                  </template>
+                </datalist>
+                <p x-show="pipeline.niche && !isKnownNiche()"
+                  class="mt-1 text-xs text-amber-400 flex items-center gap-1">
+                  <span>&#9888;</span> Custom niche — will search Google Maps for "<span x-text="pipeline.niche"></span>"
+                </p>
+                <p x-show="pipeline.niche && isKnownNiche()"
+                  class="mt-1 text-xs text-emerald-400 flex items-center gap-1">
+                  <span>&#10003;</span> Supported niche
+                </p>
+              </div>
+
+              <!-- Send Emails Toggle -->
+              <div class="flex items-center justify-between pt-2">
+                <div>
+                  <p class="text-sm font-medium">Send Emails</p>
+                  <p class="text-xs text-slate-500">Send outreach after qualifying</p>
+                </div>
+                <button @click="pipeline.sendEmails = !pipeline.sendEmails" type="button"
+                  :class="pipeline.sendEmails ? 'bg-brand-600' : 'bg-slate-700'"
+                  class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200">
+                  <span :class="pipeline.sendEmails ? 'translate-x-5' : 'translate-x-0.5'"
+                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow mt-0.5 transition-transform duration-200"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Run Button -->
+            <button @click="startPipeline()" :disabled="!canRunPipeline()"
+              :class="!canRunPipeline()
+                ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                : 'bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/20'"
+              class="w-full mt-6 py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
+              <template x-if="pipeline.running">
+                <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+              </template>
+              <span x-text="pipeline.running ? 'Running Pipeline…' : 'Run Pipeline'"></span>
+            </button>
+
+            <!-- Stop Button -->
+            <button x-show="pipeline.running" @click="stopJob('pipeline')"
+              class="w-full mt-2 py-2 rounded-lg font-medium text-sm border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors">
+              Stop Pipeline
+            </button>
+          </div>
+
+          <!-- Result Cards -->
+          <div x-show="pipeline.result" x-transition class="rounded-xl border border-slate-800 bg-slate-900 p-6">
+            <h3 class="text-sm font-semibold text-slate-300 mb-4">Results</h3>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="stat-card">
+                <p class="stat-value" x-text="pipeline.result?.scraped ?? '—'"></p>
+                <p class="stat-label">Scraped</p>
+              </div>
+              <div class="stat-card">
+                <p class="stat-value text-emerald-400" x-text="pipeline.result?.qualified ?? '—'"></p>
+                <p class="stat-label">Qualified</p>
+              </div>
+              <div class="stat-card">
+                <p class="stat-value text-amber-400" x-text="pipeline.result?.duplicates_removed ?? '—'"></p>
+                <p class="stat-label">Duplicates</p>
+              </div>
+              <div class="stat-card">
+                <p class="stat-value text-brand-400" x-text="pipeline.result?.added_to_sheet ?? '—'"></p>
+                <p class="stat-label">Added</p>
+              </div>
+              <div class="stat-card col-span-2">
+                <p class="stat-value text-cyan-400" x-text="pipeline.result?.emails_sent ?? '—'"></p>
+                <p class="stat-label">Emails Sent</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log Viewer -->
+        <div class="lg:col-span-3">
+          <div class="rounded-xl border border-slate-800 bg-slate-900 flex flex-col" style="height:calc(100vh - 260px)">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+              <h3 class="text-sm font-semibold text-slate-300">Live Output</h3>
+              <div class="flex gap-2">
+                <span x-show="pipeline.running" class="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400">
+                  <span class="h-1.5 w-1.5 rounded-full bg-brand-400 animate-pulse"></span> Live
+                </span>
+                <button @click="pipelineLogs=[]" class="text-xs text-slate-500 hover:text-slate-300 transition-colors">Clear</button>
+              </div>
+            </div>
+            <div id="pipeline-log" class="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed log-viewer">
+              <template x-if="pipelineLogs.length === 0">
+                <p class="text-slate-600 italic">Run the pipeline to see output here…</p>
+              </template>
+              <template x-for="(log, i) in pipelineLogs" :key="i">
+                <div class="log-line" :class="logClass(log.level)">
+                  <span class="text-slate-600 mr-2" x-text="log.ts"></span>
+                  <span x-text="log.message"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ EMAIL TAB ═══════════ -->
+    <div x-show="tab==='email'" x-transition>
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+        <!-- Config Panel -->
+        <div class="lg:col-span-2 space-y-5">
+          <div class="rounded-xl border border-slate-800 bg-slate-900 p-6">
+            <h2 class="text-base font-semibold mb-5">Email Outreach</h2>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1.5">Sheet Tab</label>
+                <div class="flex gap-2">
+                  <select x-model="email.sheetTab" class="input-field flex-1">
+                    <option value="">Today's sheet</option>
+                    <template x-for="s in email.tabs" :key="s">
+                      <option :value="s" x-text="s"></option>
+                    </template>
+                  </select>
+                  <button @click="loadSheets()" class="px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 text-xs transition-colors"
+                    title="Refresh sheets">
+                    ↻
+                  </button>
+                </div>
+              </div>
+
+              <!-- Stats Preview -->
+              <div x-show="email.stats" class="rounded-lg bg-slate-800/50 p-4 space-y-2">
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-400">Total leads</span>
+                  <span class="font-medium" x-text="email.stats?.total ?? '—'"></span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-400">Already emailed</span>
+                  <span class="font-medium text-emerald-400" x-text="email.stats?.emailed ?? '—'"></span>
+                </div>
+                <div class="flex justify-between text-sm">
+                  <span class="text-slate-400">Pending</span>
+                  <span class="font-medium text-amber-400" x-text="email.stats?.pending_email ?? '—'"></span>
+                </div>
+                <div class="w-full bg-slate-700 rounded-full h-1.5 mt-2">
+                  <div class="bg-brand-500 h-1.5 rounded-full transition-all duration-500"
+                    :style="`width:${email.stats?.total ? (email.stats.emailed/email.stats.total*100) : 0}%`"></div>
+                </div>
+              </div>
+            </div>
+
+            <button @click="startEmail()" :disabled="email.running"
+              :class="email.running
+                ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                : 'bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-600/20'"
+              class="w-full mt-6 py-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2">
+              <template x-if="email.running">
+                <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+              </template>
+              <span x-text="email.running ? 'Sending Emails…' : 'Send Emails'"></span>
+            </button>
+
+            <button x-show="email.running" @click="stopJob('email')"
+              class="w-full mt-2 py-2 rounded-lg font-medium text-sm border border-rose-500/30 text-rose-400 hover:bg-rose-500/10 transition-colors">
+              Stop Sending
+            </button>
+          </div>
+
+          <!-- Email Result -->
+          <div x-show="email.result" x-transition class="rounded-xl border border-slate-800 bg-slate-900 p-6">
+            <h3 class="text-sm font-semibold text-slate-300 mb-3">Email Results</h3>
+            <div class="stat-card">
+              <p class="stat-value text-emerald-400" x-text="email.result?.emails_sent ?? '—'"></p>
+              <p class="stat-label">Emails Sent</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log Viewer -->
+        <div class="lg:col-span-3">
+          <div class="rounded-xl border border-slate-800 bg-slate-900 flex flex-col" style="height:calc(100vh - 260px)">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+              <h3 class="text-sm font-semibold text-slate-300">Live Output</h3>
+              <div class="flex gap-2">
+                <span x-show="email.running" class="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400">
+                  <span class="h-1.5 w-1.5 rounded-full bg-brand-400 animate-pulse"></span> Live
+                </span>
+                <button @click="emailLogs=[]" class="text-xs text-slate-500 hover:text-slate-300 transition-colors">Clear</button>
+              </div>
+            </div>
+            <div id="email-log" class="flex-1 overflow-y-auto p-4 font-mono text-xs leading-relaxed log-viewer">
+              <template x-if="emailLogs.length === 0">
+                <p class="text-slate-600 italic">Start email sending to see output here…</p>
+              </template>
+              <template x-for="(log, i) in emailLogs" :key="i">
+                <div class="log-line" :class="logClass(log.level)">
+                  <span class="text-slate-600 mr-2" x-text="log.ts"></span>
+                  <span x-text="log.message"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ DASHBOARD TAB ═══════════ -->
+    <div x-show="tab==='dashboard'" x-transition>
+      <div class="space-y-6">
+        <!-- Summary Cards -->
+        <div class="rounded-xl border border-slate-800 bg-slate-900 p-6">
+          <div class="flex items-center justify-between mb-5">
+            <h2 class="text-base font-semibold">Dashboard</h2>
+            <button @click="loadDashboard()" :disabled="dashboard.loading"
+              class="text-xs text-slate-500 hover:text-slate-300 flex items-center gap-1 transition-colors">
+              <span :class="dashboard.loading && 'animate-spin'">↻</span>
+              <span x-text="dashboard.loading ? 'Loading…' : 'Refresh'"></span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="stat-card">
+              <p class="stat-value" x-text="dashboard.totalLeads ?? '—'"></p>
+              <p class="stat-label">Total Leads (All Days)</p>
+            </div>
+            <div class="stat-card">
+              <p class="stat-value text-emerald-400" x-text="dashboard.totalEmailed ?? '—'"></p>
+              <p class="stat-label">Total Emails Sent</p>
+            </div>
+            <div class="stat-card">
+              <p class="stat-value text-amber-400" x-text="dashboard.totalPending ?? '—'"></p>
+              <p class="stat-label">Total Pending</p>
+            </div>
+            <div class="stat-card">
+              <p class="stat-value text-brand-400" x-text="dashboard.sheetCount ?? '—'"></p>
+              <p class="stat-label">Sheet Tabs</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Per-Day Email Stats Table -->
+        <div class="rounded-xl border border-slate-800 bg-slate-900 p-6">
+          <h3 class="text-sm font-semibold text-slate-300 mb-4">Emails Sent Per Day</h3>
+
+          <template x-if="dashboard.loading">
+            <div class="flex items-center justify-center py-8 text-slate-500 text-sm">
+              <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+              Loading stats from all sheets…
+            </div>
+          </template>
+
+          <template x-if="!dashboard.loading && dashboard.dayStats.length > 0">
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-slate-700">
+                    <th class="text-left py-2.5 px-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Date</th>
+                    <th class="text-right py-2.5 px-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Leads</th>
+                    <th class="text-right py-2.5 px-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Emailed</th>
+                    <th class="text-right py-2.5 px-3 text-xs font-medium text-slate-400 uppercase tracking-wider">Pending</th>
+                    <th class="py-2.5 px-3 text-xs font-medium text-slate-400 uppercase tracking-wider" style="min-width:140px">Progress</th>
+                    <th class="py-2.5 px-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="row in dashboard.dayStats" :key="row.tab">
+                    <tr class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                      <td class="py-2.5 px-3 font-medium" x-text="row.tab"></td>
+                      <td class="py-2.5 px-3 text-right text-slate-300" x-text="row.total"></td>
+                      <td class="py-2.5 px-3 text-right">
+                        <span class="text-emerald-400 font-medium" x-text="row.emailed"></span>
+                      </td>
+                      <td class="py-2.5 px-3 text-right">
+                        <span :class="row.pending > 0 ? 'text-amber-400' : 'text-slate-500'" x-text="row.pending"></span>
+                      </td>
+                      <td class="py-2.5 px-3">
+                        <div class="flex items-center gap-2">
+                          <div class="flex-1 bg-slate-700 rounded-full h-1.5">
+                            <div class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
+                              :style="`width:${row.total ? (row.emailed/row.total*100) : 0}%`"></div>
+                          </div>
+                          <span class="text-xs text-slate-500 w-9 text-right"
+                            x-text="row.total ? Math.round(row.emailed/row.total*100)+'%' : '0%'"></span>
+                        </div>
+                      </td>
+                      <td class="py-2.5 px-3">
+                        <button @click="tab='email'; email.sheetTab=row.tab; loadTabStats()"
+                          class="text-xs text-brand-400 hover:text-brand-300 transition-colors whitespace-nowrap">
+                          Send →
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+                <tfoot>
+                  <tr class="border-t border-slate-700">
+                    <td class="py-2.5 px-3 font-semibold text-slate-200">Total</td>
+                    <td class="py-2.5 px-3 text-right font-semibold text-slate-200" x-text="dashboard.totalLeads"></td>
+                    <td class="py-2.5 px-3 text-right font-semibold text-emerald-400" x-text="dashboard.totalEmailed"></td>
+                    <td class="py-2.5 px-3 text-right font-semibold text-amber-400" x-text="dashboard.totalPending"></td>
+                    <td class="py-2.5 px-3" colspan="2"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </template>
+
+          <template x-if="!dashboard.loading && dashboard.dayStats.length === 0">
+            <p class="text-slate-600 text-sm italic py-4 text-center">No sheets found. Connect Google Sheets in your .env file.</p>
+          </template>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast Notifications -->
+  <div class="fixed bottom-6 right-6 z-50 space-y-2">
+    <template x-for="(toast, i) in toasts" :key="i">
+      <div x-show="toast.visible" x-transition
+        :class="toast.type === 'error' ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+              : toast.type === 'success' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+              : 'border-slate-700 bg-slate-800 text-slate-300'"
+        class="rounded-lg border px-4 py-3 text-sm shadow-xl max-w-sm backdrop-blur">
+        <span x-text="toast.message"></span>
+      </div>
+    </template>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

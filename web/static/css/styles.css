@@ -1,0 +1,188 @@
+/* ── Input Fields ───────────────────────── */
+.input-field {
+  appearance: none;
+  background-color: rgb(30 41 59);       /* slate-800 */
+  border: 1px solid rgb(51 65 85);       /* slate-700 */
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: rgb(226 232 240);               /* slate-200 */
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: rgb(99 102 241);         /* indigo-500 */
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.input-field:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Stat Cards ────────────────────────── */
+.stat-card {
+  background-color: rgb(30 41 59 / 0.5); /* slate-800/50 */
+  border-radius: 0.75rem;
+  padding: 1rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: rgb(148 163 184);               /* slate-400 */
+}
+
+/* ── Log Viewer ────────────────────────── */
+.log-viewer {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(51 65 85) transparent;
+}
+
+.log-viewer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.log-viewer::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.log-viewer::-webkit-scrollbar-thumb {
+  background-color: rgb(51 65 85);
+  border-radius: 3px;
+}
+
+.log-line {
+  padding: 1px 0;
+  word-break: break-all;
+}
+
+/* ── Stepper ───────────────────────────── */
+.stepper {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+}
+
+.stepper-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  text-align: center;
+}
+
+.stepper-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 14px;
+  left: calc(50% + 16px);
+  width: calc(100% - 32px);
+  height: 2px;
+  background-color: rgb(51 65 85);
+  transition: background-color 0.4s;
+}
+
+.stepper-item.stepper-completed:not(:last-child)::after {
+  background-color: rgb(16 185 129);
+}
+
+.stepper-item.stepper-active:not(:last-child)::after {
+  background: linear-gradient(90deg, rgb(99 102 241), rgb(51 65 85));
+}
+
+.stepper-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  position: relative;
+  z-index: 1;
+}
+
+.stepper-completed .stepper-dot {
+  background-color: rgb(16 185 129);
+}
+
+.stepper-active .stepper-dot {
+  background-color: rgb(99 102 241);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+}
+
+.stepper-pending .stepper-dot {
+  background-color: rgb(30 41 59);
+  border: 2px solid rgb(51 65 85);
+}
+
+.stepper-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: white;
+  animation: stepPulse 1.5s infinite;
+}
+
+@keyframes stepPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.7); }
+}
+
+.stepper-label {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+.stepper-completed .stepper-label { color: rgb(16 185 129); }
+.stepper-active .stepper-label    { color: rgb(165 180 252); }
+.stepper-pending .stepper-label   { color: rgb(100 116 139); }
+
+.stepper-desc {
+  margin-top: 2px;
+  font-size: 0.65rem;
+  color: rgb(148 163 184);
+  max-width: 120px;
+}
+
+@media (max-width: 640px) {
+  .stepper-label { font-size: 0.65rem; }
+  .stepper-desc  { display: none; }
+  .stepper-dot   { width: 22px; height: 22px; }
+  .stepper-item:not(:last-child)::after {
+    top: 11px;
+    left: calc(50% + 12px);
+    width: calc(100% - 24px);
+  }
+}
+
+/* ── Animations ────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.log-line {
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* ── Select arrow ──────────────────────── */
+select.input-field {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}

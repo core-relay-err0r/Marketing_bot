@@ -1,0 +1,24 @@
+Subject: Quick thought about {{Business Name}}
+
+Hi {{Name}},
+
+I'm Thar from Burra.io. I was looking at {{niche}} businesses in your area and came across {{Business Name}}.
+
+{{personalized_pitch}}
+
+We build modern, conversion-focused websites in 48 hours for a fixed $600. Here's what's included:
+
+- Clean, mobile-first design
+- Clear call-to-actions
+- Fast loading pages
+- 2 revision rounds
+- 100% website ownership after project
+
+You can check some of our work here: https://burra.io/portfolio
+
+Interested or have any questions? Just reply to this email — I'd love to chat about how we can help {{Business Name}} grow.
+
+Best regards,
+Thar
+Burra.io
+Telegram: @avnkra
