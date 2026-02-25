@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import time
@@ -36,15 +37,19 @@ class SheetsManager:
         if self._client is not None and self._spreadsheet is not None:
             return
 
-        if not os.path.exists(self.credentials_path):
-            raise FileNotFoundError(
-                f"Google credentials not found at {self.credentials_path}. "
-                "Create a GCP service account and download the JSON key file."
+        creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+        if creds_json:
+            info = json.loads(creds_json)
+            creds = Credentials.from_service_account_info(info, scopes=SCOPES)
+        elif os.path.exists(self.credentials_path):
+            creds = Credentials.from_service_account_file(
+                self.credentials_path, scopes=SCOPES
             )
-
-        creds = Credentials.from_service_account_file(
-            self.credentials_path, scopes=SCOPES
-        )
+        else:
+            raise FileNotFoundError(
+                f"Google credentials not found. Set GOOGLE_CREDENTIALS_JSON env var "
+                f"or place the JSON key file at {self.credentials_path}."
+            )
 
         for attempt in range(1, MAX_RETRIES + 1):
             try:
