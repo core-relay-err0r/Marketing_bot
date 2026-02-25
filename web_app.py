@@ -238,7 +238,9 @@ async def stop_job(job: str):
 
 if __name__ == "__main__":
     import uvicorn
+    import os
     setup_logging(verbose=False)
-    print("\n  Burra.io Lead Gen Bot — Web UI")
-    print("  http://localhost:8000\n")
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
+    port = int(os.getenv("PORT", "8000"))
+    print(f"\n  Burra.io Lead Gen Bot — Web UI")
+    print(f"  http://localhost:{port}\n")
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
