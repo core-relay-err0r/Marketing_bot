@@ -28,8 +28,8 @@ async def _create_stealth_context(playwright, headless: bool = True) -> BrowserC
             "--disable-sync",
             "--disable-translate",
             "--no-first-run",
-            "--single-process",
             "--disable-software-rasterizer",
+            "--disable-setuid-sandbox",
         ],
     )
     context = await browser.new_context(
@@ -391,6 +391,20 @@ async def scrape_google_maps(
 
     logger.info(f"Scraping Google Maps: '{query}' (max {max_results} results)")
 
+    try:
+        return await asyncio.wait_for(
+            _scrape_google_maps_inner(niche, city, country, max_results, headless, url, query),
+            timeout=600,
+        )
+    except asyncio.TimeoutError:
+        logger.error(f"Scraping timed out after 10 minutes for '{query}'")
+        return []
+
+
+async def _scrape_google_maps_inner(
+    niche: str, city: str, country: str,
+    max_results: int, headless: bool, url: str, query: str,
+) -> list[Business]:
     stealth = Stealth()
     async with stealth.use_async(async_playwright()) as pw:
         context = await _create_stealth_context(pw, headless=headless)
