@@ -192,7 +192,7 @@ async def get_tab_status(sheet_tab: str):
 
 # ── Polling-based pipeline/email start + logs ─────────────────
 
-async def _run_job_async(job_name: str, coro):
+async def _run_job_async(job_name: str, coro, handler):
     """Run a task and update job_status when done."""
     try:
         result = await coro
@@ -202,7 +202,7 @@ async def _run_job_async(job_name: str, coro):
     except Exception as e:
         job_status[job_name] = {"running": False, "result": {"status": "error", "message": str(e)}}
     finally:
-        _detach_handler(job_status[job_name].get("_handler"))
+        _detach_handler(handler)
         active_tasks.pop(job_name, None)
 
 
@@ -232,7 +232,7 @@ async def start_pipeline_http(request: Request):
         send_emails=data.get("send_emails", False),
         use_ai=True,
     )
-    task = asyncio.create_task(_run_job_async("pipeline", coro))
+    task = asyncio.create_task(_run_job_async("pipeline", coro, handler))
     active_tasks["pipeline"] = task
     return {"started": True}
 
@@ -258,7 +258,7 @@ async def start_email_http(request: Request):
     })
 
     coro = run_email_only(worksheet_title=sheet_tab)
-    task = asyncio.create_task(_run_job_async("email", coro))
+    task = asyncio.create_task(_run_job_async("email", coro, handler))
     active_tasks["email"] = task
     return {"started": True}
 

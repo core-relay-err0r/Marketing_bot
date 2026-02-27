@@ -123,17 +123,17 @@ async def _extract_businesses(page: Page, niche: str, city: str, country: str) -
                 continue
 
             try:
-                await asyncio.wait_for(item.scroll_into_view_if_needed(), timeout=5)
-            except (asyncio.TimeoutError, Exception):
+                await item.scroll_into_view_if_needed(timeout=10000)
+            except Exception:
                 pass
-            await random_delay(0.2, 0.4)
+            await random_delay(0.3, 0.5)
 
             try:
-                await asyncio.wait_for(item.click(), timeout=5)
-            except asyncio.TimeoutError:
-                logger.warning(f"  [{i+1}/{count}] Click timed out, skipping: {name}")
+                await item.click(timeout=15000)
+            except Exception:
+                logger.warning(f"  [{i+1}/{count}] Click failed, skipping: {name}")
                 continue
-            await random_delay(1.0, 1.8)
+            await random_delay(1.5, 2.5)
 
             detail_loaded = False
             for selector in [
@@ -143,14 +143,14 @@ async def _extract_businesses(page: Page, niche: str, city: str, country: str) -
                 '[data-item-id]',
             ]:
                 try:
-                    await page.wait_for_selector(selector, timeout=3000)
+                    await page.wait_for_selector(selector, timeout=5000)
                     detail_loaded = True
                     break
                 except Exception:
                     continue
 
             if not detail_loaded:
-                await random_delay(1.5, 2.0)
+                await random_delay(2.0, 3.0)
 
             phone = await _extract_phone(page)
             website = await _extract_website(page)
