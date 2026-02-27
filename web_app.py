@@ -1,12 +1,13 @@
 import asyncio
 import logging
+import os
 from datetime import datetime
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 load_dotenv()
 
@@ -62,6 +63,11 @@ def _detach_handler(handler: logging.Handler):
 
 
 # ── REST endpoints ─────────────────────────────────────────────
+
+@app.get("/health")
+async def health():
+    return JSONResponse({"status": "ok"})
+
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -238,7 +244,6 @@ async def stop_job(job: str):
 
 if __name__ == "__main__":
     import uvicorn
-    import os
     setup_logging(verbose=False)
     port = int(os.getenv("PORT", "8000"))
     print(f"\n  Web Scraper — Web UI")
