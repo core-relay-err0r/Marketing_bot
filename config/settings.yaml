@@ -69,8 +69,8 @@ qualifier:
 
 email:
   daily_limit: 200
-  delay_between_sends_min: 30
-  delay_between_sends_max: 30
+  delay_between_sends_min: 0
+  delay_between_sends_max: 0
   template_file: templates/outreach_email.txt
 
 kpi:
