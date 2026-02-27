@@ -69,6 +69,7 @@ def _attach_handler(handler: logging.Handler):
         lg = logging.getLogger(name)
         lg.addHandler(handler)
         lg.setLevel(logging.INFO)
+        lg.propagate = False
 
 
 def _detach_handler(handler: logging.Handler):
