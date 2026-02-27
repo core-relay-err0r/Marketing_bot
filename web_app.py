@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+import sys
+import traceback
 from datetime import datetime
 
 from dotenv import load_dotenv
@@ -11,9 +13,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 
 load_dotenv()
 
+print("[STARTUP] Loading web_app.py ...", flush=True)
+
 from src.utils import load_config, setup_logging
-from src.orchestrator import run_pipeline, run_email_only, _worksheet_title_for_today
-from src.sheets import SheetsManager
+
+print("[STARTUP] Core utils loaded", flush=True)
 
 app = FastAPI(title="Web Scraper")
 
@@ -21,6 +25,16 @@ templates = Jinja2Templates(directory="web/templates")
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
 active_tasks: dict[str, asyncio.Task] = {}
+
+
+def _lazy_import_orchestrator():
+    from src.orchestrator import run_pipeline, run_email_only, _worksheet_title_for_today
+    return run_pipeline, run_email_only, _worksheet_title_for_today
+
+
+def _lazy_import_sheets():
+    from src.sheets import SheetsManager
+    return SheetsManager
 
 
 class WebSocketLogHandler(logging.Handler):
@@ -76,23 +90,29 @@ async def index(request: Request):
 
 @app.get("/api/config")
 async def get_config():
-    config = load_config()
-    return {
-        "countries": config["countries"],
-        "niches": config["niches"],
-        "niche_priority": config.get("niche_priority", config["niches"]),
-        "email": config.get("email", {}),
-    }
+    try:
+        config = load_config()
+        return {
+            "countries": config["countries"],
+            "niches": config["niches"],
+            "niche_priority": config.get("niche_priority", config["niches"]),
+            "email": config.get("email", {}),
+        }
+    except Exception as e:
+        print(f"[ERROR] /api/config: {e}", flush=True)
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 
 @app.get("/api/sheets")
 async def get_sheets():
     try:
+        SheetsManager = _lazy_import_sheets()
         sheets = SheetsManager()
         sheets._connect()
         tabs = [ws.title for ws in sheets._spreadsheet.worksheets()]
         return {"sheets": tabs}
     except Exception as e:
+        print(f"[ERROR] /api/sheets: {e}", flush=True)
         return {"sheets": [], "error": str(e)}
 
 
@@ -100,6 +120,7 @@ async def get_sheets():
 async def get_all_stats():
     """Return per-sheet stats for the dashboard."""
     try:
+        SheetsManager = _lazy_import_sheets()
         sheets = SheetsManager()
         sheets._connect()
         result = []
@@ -118,15 +139,18 @@ async def get_all_stats():
                 result.append({"tab": ws.title, "total": 0, "emailed": 0, "pending": 0})
         return {"stats": result}
     except Exception as e:
+        print(f"[ERROR] /api/stats/all: {e}", flush=True)
         return {"stats": [], "error": str(e)}
 
 
 @app.get("/api/status/{sheet_tab}")
 async def get_tab_status(sheet_tab: str):
     try:
+        SheetsManager = _lazy_import_sheets()
         sheets = SheetsManager()
         return sheets.get_daily_stats(sheet_tab)
     except Exception as e:
+        print(f"[ERROR] /api/status: {e}", flush=True)
         return {"error": str(e)}
 
 
@@ -143,7 +167,6 @@ async def _stream_queue(ws: WebSocket, queue: asyncio.Queue, task: asyncio.Task)
         except (WebSocketDisconnect, Exception):
             task.cancel()
             return
-    # flush remaining
     while not queue.empty():
         await ws.send_json(queue.get_nowait())
 
@@ -160,6 +183,7 @@ async def pipeline_ws(ws: WebSocket):
         await ws.send_json({"type": "status", "status": "running",
                             "message": "Pipeline starting…"})
 
+        run_pipeline, _, _ = _lazy_import_orchestrator()
         task = asyncio.create_task(run_pipeline(
             city=data.get("city") or None,
             country=data.get("country") or None,
@@ -202,6 +226,7 @@ async def email_ws(ws: WebSocket):
 
     try:
         data = await ws.receive_json()
+        _, run_email_only, _worksheet_title_for_today = _lazy_import_orchestrator()
         sheet_tab = data.get("sheet_tab") or _worksheet_title_for_today()
 
         await ws.send_json({"type": "status", "status": "running",
@@ -246,6 +271,6 @@ if __name__ == "__main__":
     import uvicorn
     setup_logging(verbose=False)
     port = int(os.getenv("PORT", "8000"))
-    print(f"\n  Web Scraper — Web UI")
-    print(f"  http://localhost:{port}\n")
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
+    print(f"\n  Web Scraper — Web UI", flush=True)
+    print(f"  http://localhost:{port}\n", flush=True)
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
