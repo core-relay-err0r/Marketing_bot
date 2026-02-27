@@ -10,6 +10,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -21,10 +22,25 @@ print("[STARTUP] Core utils loaded", flush=True)
 
 app = FastAPI(title="Web Scraper")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 templates = Jinja2Templates(directory="web/templates")
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
 active_tasks: dict[str, asyncio.Task] = {}
+
+# ── Polling log buffers ───────────────────────────────────────
+job_logs: dict[str, list[dict]] = {"pipeline": [], "email": []}
+job_status: dict[str, dict] = {
+    "pipeline": {"running": False, "result": None},
+    "email":    {"running": False, "result": None},
+}
 
 
 def _lazy_import_orchestrator():
@@ -35,6 +51,25 @@ def _lazy_import_orchestrator():
 def _lazy_import_sheets():
     from src.sheets import SheetsManager
     return SheetsManager
+
+
+class ListLogHandler(logging.Handler):
+    """Appends log records to an in-memory list for polling."""
+
+    def __init__(self, target_list: list):
+        super().__init__()
+        self.target_list = target_list
+
+    def emit(self, record):
+        try:
+            self.target_list.append({
+                "type": "log",
+                "level": record.levelname,
+                "message": self.format(record),
+                "ts": datetime.now().strftime("%H:%M:%S"),
+            })
+        except Exception:
+            pass
 
 
 class WebSocketLogHandler(logging.Handler):
@@ -155,7 +190,97 @@ async def get_tab_status(sheet_tab: str):
         return {"error": str(e)}
 
 
-# ── WebSocket: pipeline ────────────────────────────────────────
+# ── Polling-based pipeline/email start + logs ─────────────────
+
+async def _run_job_async(job_name: str, coro):
+    """Run a task and update job_status when done."""
+    try:
+        result = await coro
+        job_status[job_name] = {"running": False, "result": {"status": "completed", "data": result}}
+    except asyncio.CancelledError:
+        job_status[job_name] = {"running": False, "result": {"status": "cancelled", "data": {}}}
+    except Exception as e:
+        job_status[job_name] = {"running": False, "result": {"status": "error", "message": str(e)}}
+    finally:
+        _detach_handler(job_status[job_name].get("_handler"))
+        active_tasks.pop(job_name, None)
+
+
+@app.post("/api/pipeline/start")
+async def start_pipeline_http(request: Request):
+    if job_status["pipeline"].get("running"):
+        return {"started": False, "error": "Pipeline already running"}
+
+    data = await request.json()
+    job_logs["pipeline"] = []
+    handler = ListLogHandler(job_logs["pipeline"])
+    _attach_handler(handler)
+    job_status["pipeline"] = {"running": True, "result": None, "_handler": handler}
+
+    job_logs["pipeline"].append({
+        "type": "log", "level": "INFO",
+        "message": "Pipeline starting…",
+        "ts": datetime.now().strftime("%H:%M:%S"),
+    })
+
+    run_pipeline, _, _ = _lazy_import_orchestrator()
+    coro = run_pipeline(
+        city=data.get("city") or None,
+        country=data.get("country") or None,
+        niche=data.get("niche") or None,
+        headless=True,
+        send_emails=data.get("send_emails", False),
+        use_ai=True,
+    )
+    task = asyncio.create_task(_run_job_async("pipeline", coro))
+    active_tasks["pipeline"] = task
+    return {"started": True}
+
+
+@app.post("/api/email/start")
+async def start_email_http(request: Request):
+    if job_status["email"].get("running"):
+        return {"started": False, "error": "Email job already running"}
+
+    data = await request.json()
+    _, run_email_only, _worksheet_title_for_today = _lazy_import_orchestrator()
+    sheet_tab = data.get("sheet_tab") or _worksheet_title_for_today()
+
+    job_logs["email"] = []
+    handler = ListLogHandler(job_logs["email"])
+    _attach_handler(handler)
+    job_status["email"] = {"running": True, "result": None, "_handler": handler}
+
+    job_logs["email"].append({
+        "type": "log", "level": "INFO",
+        "message": f"Sending emails for '{sheet_tab}'…",
+        "ts": datetime.now().strftime("%H:%M:%S"),
+    })
+
+    coro = run_email_only(worksheet_title=sheet_tab)
+    task = asyncio.create_task(_run_job_async("email", coro))
+    active_tasks["email"] = task
+    return {"started": True}
+
+
+@app.get("/api/logs/{job}")
+async def get_logs(job: str, since: int = 0):
+    if job not in ("pipeline", "email"):
+        return JSONResponse({"error": "Invalid job"}, status_code=400)
+
+    logs = job_logs.get(job, [])
+    new_logs = logs[since:]
+    status = job_status.get(job, {})
+
+    return {
+        "logs": new_logs,
+        "total": len(logs),
+        "running": status.get("running", False),
+        "result": status.get("result"),
+    }
+
+
+# ── WebSocket: pipeline (kept for local dev) ─────────────────
 
 async def _stream_queue(ws: WebSocket, queue: asyncio.Queue, task: asyncio.Task):
     """Drain the log queue and forward messages until the task finishes."""
@@ -216,8 +341,6 @@ async def pipeline_ws(ws: WebSocket):
         active_tasks.pop("pipeline", None)
 
 
-# ── WebSocket: email ──────────────────────────────────────────
-
 @app.websocket("/ws/email")
 async def email_ws(ws: WebSocket):
     await ws.accept()
@@ -256,8 +379,6 @@ async def email_ws(ws: WebSocket):
         _detach_handler(handler)
         active_tasks.pop("email", None)
 
-
-# ── WebSocket: stop ───────────────────────────────────────────
 
 @app.post("/api/stop/{job}")
 async def stop_job(job: str):
