@@ -21,6 +21,15 @@ async def _create_stealth_context(playwright, headless: bool = True) -> BrowserC
             "--disable-blink-features=AutomationControlled",
             "--no-sandbox",
             "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--disable-extensions",
+            "--disable-background-networking",
+            "--disable-default-apps",
+            "--disable-sync",
+            "--disable-translate",
+            "--no-first-run",
+            "--single-process",
+            "--disable-software-rasterizer",
         ],
     )
     context = await browser.new_context(
@@ -113,12 +122,19 @@ async def _extract_businesses(page: Page, niche: str, city: str, country: str) -
             if not name:
                 continue
 
-            await item.scroll_into_view_if_needed()
-            await random_delay(0.3, 0.6)
-            await item.click()
-            await random_delay(1.5, 2.5)
+            try:
+                await asyncio.wait_for(item.scroll_into_view_if_needed(), timeout=5)
+            except (asyncio.TimeoutError, Exception):
+                pass
+            await random_delay(0.2, 0.4)
 
-            # Wait for detail panel to load with multiple selector strategies
+            try:
+                await asyncio.wait_for(item.click(), timeout=5)
+            except asyncio.TimeoutError:
+                logger.warning(f"  [{i+1}/{count}] Click timed out, skipping: {name}")
+                continue
+            await random_delay(1.0, 1.8)
+
             detail_loaded = False
             for selector in [
                 '[data-item-id="authority"]',
@@ -134,7 +150,7 @@ async def _extract_businesses(page: Page, niche: str, city: str, country: str) -
                     continue
 
             if not detail_loaded:
-                await random_delay(2.0, 3.0)
+                await random_delay(1.5, 2.0)
 
             phone = await _extract_phone(page)
             website = await _extract_website(page)
@@ -143,8 +159,7 @@ async def _extract_businesses(page: Page, niche: str, city: str, country: str) -
             review_count = await _extract_review_count(page)
             category = await _extract_category(page)
 
-            has_data = phone or website or address
-            logger.debug(
+            logger.info(
                 f"  [{i+1}/{count}] {name} | "
                 f"phone={'Y' if phone else 'N'} | "
                 f"web={'Y' if website else 'N'} | "
@@ -165,11 +180,8 @@ async def _extract_businesses(page: Page, niche: str, city: str, country: str) -
             )
             businesses.append(biz)
 
-            if (i + 1) % 10 == 0:
-                logger.info(f"Extracted {i + 1}/{count} businesses")
-
         except Exception as e:
-            logger.debug(f"Failed to extract business #{i}: {e}")
+            logger.warning(f"  [{i+1}/{count}] Failed: {e}")
             continue
 
     return businesses
