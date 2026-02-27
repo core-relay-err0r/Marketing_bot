@@ -37,7 +37,7 @@ def run(city, country, niche, no_email, no_headless, ai):
     from src.orchestrator import run_pipeline
 
     console.print(Panel.fit(
-        "[bold green]Burra.io Lead Gen Bot[/bold green]\n"
+        "[bold green]Web Scraper[/bold green]\n"
         "Starting full pipeline..." +
         ("\n[bold magenta]AI Vision Scoring: ON[/bold magenta]" if ai else ""),
         border_style="green",

@@ -14,7 +14,7 @@ from src.utils import load_config, setup_logging
 from src.orchestrator import run_pipeline, run_email_only, _worksheet_title_for_today
 from src.sheets import SheetsManager
 
-app = FastAPI(title="Burra.io Lead Gen Bot")
+app = FastAPI(title="Web Scraper")
 
 templates = Jinja2Templates(directory="web/templates")
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
@@ -241,6 +241,6 @@ if __name__ == "__main__":
     import os
     setup_logging(verbose=False)
     port = int(os.getenv("PORT", "8000"))
-    print(f"\n  Burra.io Lead Gen Bot — Web UI")
+    print(f"\n  Web Scraper — Web UI")
     print(f"  http://localhost:{port}\n")
     uvicorn.run(app, host="0.0.0.0", port=port, log_level="warning")
